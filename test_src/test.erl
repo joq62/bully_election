@@ -106,11 +106,11 @@ t1()->
     [rpc:cast(Node,bully,boot,[])||Node<-nodes()],
 
     timer:sleep(1000),
-    io:format("c is leader ~p~n",[rpc:call(N1,bully,status,[],1000)]),
+    io:format("Leader = ~p~n",[rpc:call(N1,bully,who_is_leader,[],1000)]),
     % Kill slave
     slave:stop(N3),
     timer:sleep(1000),
-    io:format("b is leader ~p~n",[rpc:call(N1,bully,status,[],1000)]),
+    io:format("Leader = ~p~n",[rpc:call(N1,bully,who_is_leader,[],1000)]),
     
     % REstart node
     HostId=net_adm:localhost(),
@@ -119,7 +119,7 @@ t1()->
     [{ok,N3}]=[slave:start(HostId,NodeName,Args)||NodeName<-["c"]],
     rpc:cast(N3,bully,boot,[]),
     timer:sleep(1000),
-    io:format("c is leader ~p~n",[rpc:call(N1,bully,status,[],1000)]),
+    io:format("Leader = ~p~n",[rpc:call(N1,bully,who_is_leader,[],1000)]),
     
 
     

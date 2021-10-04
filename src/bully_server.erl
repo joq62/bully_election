@@ -24,7 +24,9 @@
 	 election_response/0,
 	 election_timeout/1,
 	 coordinator_message/1,
-	 start_election/0
+	 start_election/0,
+	 who_is_leader/0,
+	 am_i_leader/1
 	]).
 
 %% gen_server callbacks
@@ -43,6 +45,11 @@ stop()-> gen_server:call(?MODULE, {stop},infinity).
 
 status()->
     gen_server:call(?MODULE,{status},infinity).
+
+who_is_leader()->
+    gen_server:call(?MODULE,{who_is_leader},infinity).
+am_i_leader(CallingNode)->
+    gen_server:call(?MODULE,{am_i_leader,CallingNode},infinity).
    
 election_message(CoordinatorNode)->
      gen_server:cast(?MODULE,{election_message,CoordinatorNode}).
@@ -87,6 +94,12 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 
+handle_call({who_is_leader},_From, State) ->
+    Reply = State#state.coordinator_node,
+    {reply, Reply, State};
+handle_call({am_i_leader,CallingNode},_From, State) ->
+    Reply =State#state.coordinator_node=:=CallingNode,
+    {reply, Reply, State};
 handle_call({status},_From, State) ->
     Reply = State,
     {reply, Reply, State};
@@ -145,7 +158,7 @@ handle_cast(Msg, State) ->
 %% --------------------------------------------------------------------
 
 handle_info({nodedown, CoordinatorNode},State) -> 
-    io:format("nodedown Node ~p~n",[{CoordinatorNode,State#state.coordinator_node,?FUNCTION_NAME,?MODULE,?LINE}]),
+ %   io:format("nodedown Node ~p~n",[{CoordinatorNode,State#state.coordinator_node,?FUNCTION_NAME,?MODULE,?LINE}]),
     NewState=case State#state.coordinator_node=:=CoordinatorNode of
 		 true->
 		     start_election(State);
@@ -198,7 +211,7 @@ start_election(State) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 win_election( State) ->
-    io:format("Node ~s has declared itself a leader.~n", [atom_to_list(node())]),
+%    io:format("Node ~s has declared itself a leader.~n", [atom_to_list(node())]),
     NodesLowerId=nodes_with_lower_ids(nodes()),
     [rpc:cast(Node,bully,coordinator_message,[node()])||Node<-NodesLowerId],
     set_coordinator(State, node()).
@@ -208,7 +221,6 @@ win_election( State) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 set_coordinator(State, CoordinatorNode) ->
-    io:format("Node ~p has changed leader from ~p to ~p~n", [node(), State#state.coordinator_node, CoordinatorNode]),
     monitor_node(State#state.coordinator_node, false),
     monitor_node(CoordinatorNode, true),
     if 

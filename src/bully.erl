@@ -23,7 +23,9 @@
 	 election_response/0,
 	 election_timeout/1,
 	 coordinator_message/1,
-	 start_election/0
+	 start_election/0,
+	 who_is_leader/0,
+	 am_i_leader/1
 	]).
 
 %% --------------------------------------------------------------------
@@ -46,7 +48,10 @@
 %% --------------------------------------------------------------------
 boot()->
     application:start(?MODULE).
-
+who_is_leader()->
+     bully_server:who_is_leader().
+am_i_leader(CallingNode)->
+     bully_server:am_i_leader(CallingNode).
 status()->
     bully_server:status().
 election_message(CoordinatorNode)->

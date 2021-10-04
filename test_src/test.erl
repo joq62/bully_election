@@ -104,6 +104,24 @@ start()->
 t1()->
     [N1,N2,N3]=nodes(),
     [rpc:cast(Node,bully,boot,[])||Node<-nodes()],
+
+    timer:sleep(1000),
+    io:format("c is leader ~p~n",[rpc:call(N1,bully,status,[],1000)]),
+    % Kill slave
+    slave:stop(N3),
+    timer:sleep(1000),
+    io:format("b is leader ~p~n",[rpc:call(N1,bully,status,[],1000)]),
+    
+    % REstart node
+    HostId=net_adm:localhost(),
+    Cookie=atom_to_list(erlang:get_cookie()),
+    Args="-pa ebin -setcookie "++Cookie,
+    [{ok,N3}]=[slave:start(HostId,NodeName,Args)||NodeName<-["c"]],
+    rpc:cast(N3,bully,boot,[]),
+    timer:sleep(1000),
+    io:format("c is leader ~p~n",[rpc:call(N1,bully,status,[],1000)]),
+    
+
     
     ok.
 

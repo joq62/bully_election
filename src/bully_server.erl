@@ -200,7 +200,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 start_election(State) ->
-    NodesHigherId=nodes_with_higher_ids(nodes()),
+    {ok,Nodes}=application:get_env(nodes),
+    NodesHigherId=nodes_with_higher_ids(Nodes),
     [rpc:cast(Node,bully,election_message,[node()])||Node<-NodesHigherId],
     PidTimeout=spawn(fun()->election_timeout() end),
     State#state{pid_timeout=PidTimeout}.
@@ -212,7 +213,8 @@ start_election(State) ->
 %% --------------------------------------------------------------------
 win_election( State) ->
 %    io:format("Node ~s has declared itself a leader.~n", [atom_to_list(node())]),
-    NodesLowerId=nodes_with_lower_ids(nodes()),
+    {ok,Nodes}=application:get_env(nodes),
+    NodesLowerId=nodes_with_lower_ids(Nodes),
     [rpc:cast(Node,bully,coordinator_message,[node()])||Node<-NodesLowerId],
     set_coordinator(State, node()).
 %% --------------------------------------------------------------------

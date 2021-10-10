@@ -79,6 +79,7 @@ start_election()->
 %% --------------------------------------------------------------------
 init([]) ->
     bully:start_election(),
+    timer:sleep(?WAIT_FOR_ELECTION_RESPONSE_TIMEOUT+100),
     {ok, #state{nodes = [],
 		coordinator_node = node(), 
 		pid_timeout=no_pid}}.
@@ -129,7 +130,12 @@ handle_cast({election_message,CoordinatorNode}, State) ->
     {noreply, NewState};
 
 handle_cast({election_response}, State) ->
-    State#state.pid_timeout!kill,
+    if 
+	erlang:is_pid(tate#state.pid_timeout)=:=true->
+	    State#state.pid_timeout!kill;
+	true->
+	    ok
+    end,
     NewState=State#state{pid_timeout=no_pid},
     {noreply, NewState};
 
@@ -200,6 +206,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 start_election(State) ->
+  %  io:format("Election started by Node ~p~n",[{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
     {ok,Nodes}=application:get_env(nodes),
     NodesHigherId=nodes_with_higher_ids(Nodes),
     [rpc:cast(Node,bully,election_message,[node()])||Node<-NodesHigherId],
@@ -212,7 +219,7 @@ start_election(State) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 win_election( State) ->
-%    io:format("Node ~s has declared itself a leader.~n", [atom_to_list(node())]),
+ %   io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
     {ok,Nodes}=application:get_env(nodes),
     NodesLowerId=nodes_with_lower_ids(Nodes),
     [rpc:cast(Node,bully,coordinator_message,[node()])||Node<-NodesLowerId],
@@ -226,7 +233,7 @@ set_coordinator(State, CoordinatorNode) ->
     monitor_node(State#state.coordinator_node, false),
     monitor_node(CoordinatorNode, true),
     if 
-	State#state.pid_timeout/=no_pid->
+	erlang:is_pid(tate#state.pid_timeout)=:=true->
 	    State#state.pid_timeout!kill;
 	true->
 	    ok
